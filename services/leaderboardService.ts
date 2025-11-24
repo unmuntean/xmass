@@ -30,20 +30,20 @@ export const leaderboardService = {
     return data || [];
   },
 
-  // Submit a new score with validation
+  // Submit a new score – light validation, rely on DB constraints for the rest
   async submitScore(playerName: string, score: number): Promise<{ success: boolean; id?: string }> {
-    // Validate inputs
-    if (!playerName || playerName.trim().length < 2 || playerName.trim().length > 50) {
+    const trimmedName = (playerName || '').trim();
+    if (!trimmedName) {
       return { success: false };
     }
-    
-    if (!score || !Number.isFinite(score) || score < 0 || score > 999999) {
+
+    if (!Number.isFinite(score) || score < 0) {
       return { success: false };
     }
-    
-    const sanitizedName = playerName.trim().substring(0, 50);
+
+    const sanitizedName = trimmedName.substring(0, 50);
     const sanitizedScore = Math.floor(Math.max(0, Math.min(999999, score)));
-    
+
     const { data, error } = await supabase
       .from('leaderboard')
       .insert([{ player_name: sanitizedName, score: sanitizedScore }])
@@ -57,54 +57,36 @@ export const leaderboardService = {
     return { success: true, id: data?.id };
   },
 
-  // Update an existing score with validation
-  async updateScore(scoreId: string, newScore: number): Promise<boolean> {
-    // Validate inputs
+  // Update an existing score – allow changing both score and name
+  async updateScore(scoreId: string, newScore: number, playerName?: string): Promise<boolean> {
     if (!scoreId || typeof scoreId !== 'string') {
       return false;
     }
-    
-    if (!newScore || !Number.isFinite(newScore) || newScore < 0 || newScore > 999999) {
+
+    if (!Number.isFinite(newScore) || newScore < 0) {
       return false;
     }
-    
+
     const sanitizedScore = Math.floor(Math.max(0, Math.min(999999, newScore)));
-    
-    // First, verify this score ID exists and get the current score
-    const { data: currentData, error: fetchError } = await supabase
+
+    const updatePayload: { score: number; player_name?: string } = {
+      score: sanitizedScore,
+    };
+
+    const trimmedName = (playerName || '').trim();
+    if (trimmedName) {
+      updatePayload.player_name = trimmedName.substring(0, 50);
+    }
+
+    const { error } = await supabase
       .from('leaderboard')
-      .select('score')
-      .eq('id', scoreId)
-      .single();
-    
-    if (fetchError) {
-      console.error('Failed to fetch current score:', fetchError);
-      return false;
-    }
-    
-    // Only allow updates if new score is higher (prevent downgrade attacks)
-    if (!currentData) {
-      console.error('Score ID not found:', scoreId);
-      return false;
-    }
-    
-    if (sanitizedScore <= currentData.score) {
-      console.error('New score not higher:', sanitizedScore, 'vs', currentData.score);
-      return false;
-    }
-    
-    // Update ONLY the score, keep created_at as original
-    const { error: updateError } = await supabase
-      .from('leaderboard')
-      .update({ score: sanitizedScore })
+      .update(updatePayload)
       .eq('id', scoreId);
 
-    if (updateError) {
-      console.error('Update failed:', updateError);
+    if (error) {
       return false;
     }
 
-    console.log('Score updated successfully:', scoreId, 'to', sanitizedScore);
     return true;
   },
 

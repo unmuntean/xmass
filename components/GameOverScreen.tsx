@@ -129,14 +129,16 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
       return;
     }
     
+    const trimmedName = name.trim();
+    
     if (isUpdateMode && deviceScore && deviceScore.scoreId) {
-      // Update existing score
-      const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore);
+      // Update existing score (and allow name change)
+      const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore, trimmedName);
       
       if (success) {
         // Update device storage with NEW high score
         deviceStorage.saveDeviceScore({
-          playerName: name.trim(),
+          playerName: trimmedName,
           scoreId: deviceScore.scoreId,
           highScore: stats.finalScore,
           submittedAt: Date.now()
@@ -158,12 +160,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
       }
     } else {
       // Submit new score
-      const result = await leaderboardService.submitScore(name.trim(), stats.finalScore);
+      const result = await leaderboardService.submitScore(trimmedName, stats.finalScore);
       
       if (result.success && result.id) {
         // Save to device storage
         deviceStorage.saveDeviceScore({
-          playerName: name.trim(),
+          playerName: trimmedName,
           scoreId: result.id,
           highScore: stats.finalScore,
           submittedAt: Date.now()
