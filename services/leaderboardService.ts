@@ -71,26 +71,40 @@ export const leaderboardService = {
     const sanitizedScore = Math.floor(Math.max(0, Math.min(999999, newScore)));
     
     // First, verify this score ID exists and get the current score
-    const { data: currentData } = await supabase
+    const { data: currentData, error: fetchError } = await supabase
       .from('leaderboard')
       .select('score')
       .eq('id', scoreId)
       .single();
     
-    // Only allow updates if new score is higher (prevent downgrade attacks)
-    if (!currentData || sanitizedScore <= currentData.score) {
+    if (fetchError) {
+      console.error('Failed to fetch current score:', fetchError);
       return false;
     }
     
-    const { error } = await supabase
+    // Only allow updates if new score is higher (prevent downgrade attacks)
+    if (!currentData) {
+      console.error('Score ID not found:', scoreId);
+      return false;
+    }
+    
+    if (sanitizedScore <= currentData.score) {
+      console.error('New score not higher:', sanitizedScore, 'vs', currentData.score);
+      return false;
+    }
+    
+    // Update ONLY the score, keep created_at as original
+    const { error: updateError } = await supabase
       .from('leaderboard')
-      .update({ score: sanitizedScore, created_at: new Date().toISOString() })
+      .update({ score: sanitizedScore })
       .eq('id', scoreId);
 
-    if (error) {
+    if (updateError) {
+      console.error('Update failed:', updateError);
       return false;
     }
 
+    console.log('Score updated successfully:', scoreId, 'to', sanitizedScore);
     return true;
   },
 

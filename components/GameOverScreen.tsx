@@ -25,10 +25,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   const [showNameInput, setShowNameInput] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isHighScore, setIsHighScore] = useState(false);
-  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Track initial load
   const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
   const [isUpdateMode, setIsUpdateMode] = useState(false); // Track if updating existing score
   const [existingPlayerName, setExistingPlayerName] = useState<string>('');
+  const [detailsClickable, setDetailsClickable] = useState(false); // Delay item clicks on Game Over
   
   // Sort items: Vouchers first, then by count descending
   const sortedItems = [...stats.collectedItems].sort((a, b) => {
@@ -42,8 +43,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   // Load leaderboard on mount - check FRESH device storage each time
   useEffect(() => {
     const loadLeaderboard = async () => {
-      setLeaderboardLoading(true);
-      
       // Fetch top 3 from server
       const top3 = await leaderboardService.getTopPlayers(3);
       setTopPlayers(top3);
@@ -70,10 +69,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
         setIsUpdateMode(false);
       }
       
-      setLeaderboardLoading(false);
+      setInitialLoadComplete(true);
     };
     
     loadLeaderboard();
+  }, [stats.finalScore]);
+
+  // Small delay before wishlist items become clickable (avoid accidental taps on mobile)
+  useEffect(() => {
+    setDetailsClickable(false);
+    const t = setTimeout(() => setDetailsClickable(true), 1000);
+    return () => clearTimeout(t);
   }, [stats.finalScore]);
 
   // Score counting animation - runs ONCE on mount
@@ -102,11 +108,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   
   // Separate effect to show name input after animation completes
   useEffect(() => {
-    if (showDetails && isHighScore && !leaderboardLoading && !hasSubmittedScore) {
+    if (showDetails && isHighScore && initialLoadComplete && !hasSubmittedScore) {
       const timeout = setTimeout(() => setShowNameInput(true), 300);
       return () => clearTimeout(timeout);
     }
-  }, [showDetails, isHighScore, leaderboardLoading, hasSubmittedScore]);
+  }, [showDetails, isHighScore, initialLoadComplete, hasSubmittedScore]);
 
   const handleCopyCode = (code: string) => {
       navigator.clipboard.writeText(code);
@@ -126,6 +132,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     if (isUpdateMode && deviceScore && deviceScore.scoreId) {
       // Update existing score
       const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore);
+      
       if (success) {
         // Update device storage with NEW high score
         deviceStorage.saveDeviceScore({
@@ -135,14 +142,24 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
           submittedAt: Date.now()
         });
         
-        // Refresh leaderboard
+        // Refresh BOTH top 3 podium AND full leaderboard
         const top3 = await leaderboardService.getTopPlayers(3);
         setTopPlayers(top3);
+        
+        // Also refresh full leaderboard if it's open
+        if (showFullLeaderboard) {
+          const allPlayers = await leaderboardService.getTopPlayers(50);
+          setFullLeaderboard(allPlayers);
+        }
+        
         setHasSubmittedScore(true);
+      } else {
+        console.error('Update failed!');
       }
     } else {
       // Submit new score
       const result = await leaderboardService.submitScore(name.trim(), stats.finalScore);
+      
       if (result.success && result.id) {
         // Save to device storage
         deviceStorage.saveDeviceScore({
@@ -152,21 +169,29 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
           submittedAt: Date.now()
         });
         
-        // Refresh leaderboard
+        // Refresh BOTH top 3 podium AND full leaderboard
         const top3 = await leaderboardService.getTopPlayers(3);
         setTopPlayers(top3);
+        
+        // Also refresh full leaderboard if it's open
+        if (showFullLeaderboard) {
+          const allPlayers = await leaderboardService.getTopPlayers(50);
+          setFullLeaderboard(allPlayers);
+        }
+        
         setHasSubmittedScore(true);
+      } else {
+        console.error('Submit failed!');
       }
     }
     setShowNameInput(false);
   };
 
   const handleViewFullLeaderboard = async () => {
-    setLeaderboardLoading(true);
+    // Fetch full leaderboard without affecting the initial load state
     const allPlayers = await leaderboardService.getTopPlayers(50);
-    setFullLeaderboard(allPlayers); // Use separate state
+    setFullLeaderboard(allPlayers);
     setShowFullLeaderboard(true);
-    setLeaderboardLoading(false);
   };
   
   const handleCancelNameInput = () => {
@@ -311,9 +336,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
                             const isVoucher = item.product.specialType === 'VOUCHER';
                             
                             return (
-                                <div 
-                                    key={`${item.product.id}-${idx}`}
-                                    onClick={() => setSelectedItem(item)}
+                                    <div 
+                                   key={`${item.product.id}-${idx}`}
+                                   onClick={() => { if (detailsClickable) setSelectedItem(item); }}
                                     className={`flex items-center justify-between py-2 border-b border-gray-200 cursor-pointer group hover:bg-black/5 px-2 transition-colors ${isVoucher ? 'bg-yellow-50/80' : ''}`}
                                 >
                                     <div className="flex items-center gap-3 overflow-hidden">

@@ -1,9 +1,10 @@
--- Enhanced Security Policies for Leaderboard
 -- Run this in your Supabase SQL Editor to add server-side validation
 
--- Drop existing policies
+-- Drop existing policies (if they exist)
 DROP POLICY IF EXISTS "Allow public read access" ON leaderboard;
 DROP POLICY IF EXISTS "Allow public insert access" ON leaderboard;
+DROP POLICY IF EXISTS "Allow score increase only" ON leaderboard;
+DROP POLICY IF EXISTS "Allow score updates" ON leaderboard;
 
 -- Add constraint to limit score range (0 to 999,999)
 ALTER TABLE leaderboard 
@@ -20,8 +21,8 @@ CREATE POLICY "Allow public read access"
   ON leaderboard FOR SELECT 
   USING (true);
 
--- Policy: Anyone can insert with validation
-CREATE POLICY "Allow validated insert" 
+-- Policy: Anyone can insert with validation on basic fields
+CREATE POLICY "Allow public insert access" 
   ON leaderboard FOR INSERT 
   WITH CHECK (
     score >= 0 
@@ -30,13 +31,14 @@ CREATE POLICY "Allow validated insert"
     AND char_length(player_name) <= 50
   );
 
--- Policy: Can only update to HIGHER scores (prevent cheating)
-CREATE POLICY "Allow score increase only" 
-  ON leaderboard FOR UPDATE 
+-- Policy: Allow score updates with basic validation
+-- (client and constraints already enforce 0–999999 and name length;
+-- this policy just ensures updates stay within valid range)
+CREATE POLICY "Allow score updates"
+  ON leaderboard FOR UPDATE
   USING (true)
   WITH CHECK (
-    score > (SELECT score FROM leaderboard WHERE id = leaderboard.id)
-    AND score <= 999999
+    score >= 0 AND score <= 999999
   );
 
 -- Create function to limit entries per IP (optional - if you want to track)
