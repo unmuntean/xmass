@@ -39,26 +39,29 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     return b.count - a.count;
   });
 
-  // Load leaderboard on mount
+  // Load leaderboard on mount - check FRESH device storage each time
   useEffect(() => {
     const loadLeaderboard = async () => {
       setLeaderboardLoading(true);
+      
+      // Fetch top 3 from server
       const top3 = await leaderboardService.getTopPlayers(3);
       setTopPlayers(top3);
       
-      // Check device storage for existing score
+      // IMPORTANT: Always get FRESH device storage data
       const deviceScore = deviceStorage.getDeviceScore();
       
-      if (deviceScore) {
+      if (deviceScore && deviceScore.highScore && typeof deviceScore.highScore === 'number') {
         // User has already submitted from this device
         if (stats.finalScore > deviceScore.highScore) {
           // New high score for this device - offer update
           setIsUpdateMode(true);
-          setExistingPlayerName(deviceScore.playerName);
+          setExistingPlayerName(deviceScore.playerName || '');
           setIsHighScore(true);
         } else {
-          // Lower score - don't show name input
+          // Lower or equal score - don't show name input
           setIsHighScore(false);
+          setIsUpdateMode(false);
         }
       } else {
         // No previous score from this device - check global leaderboard
@@ -114,13 +117,19 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   const handleSubmitScore = async (name: string) => {
     const deviceScore = deviceStorage.getDeviceScore();
     
-    if (isUpdateMode && deviceScore) {
+    // Validate score before submitting (basic client-side check)
+    if (!stats.finalScore || stats.finalScore < 0 || !Number.isFinite(stats.finalScore)) {
+      setShowNameInput(false);
+      return;
+    }
+    
+    if (isUpdateMode && deviceScore && deviceScore.scoreId) {
       // Update existing score
       const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore);
       if (success) {
-        // Update device storage
+        // Update device storage with NEW high score
         deviceStorage.saveDeviceScore({
-          playerName: name,
+          playerName: name.trim(),
           scoreId: deviceScore.scoreId,
           highScore: stats.finalScore,
           submittedAt: Date.now()
@@ -133,11 +142,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
       }
     } else {
       // Submit new score
-      const result = await leaderboardService.submitScore(name, stats.finalScore);
+      const result = await leaderboardService.submitScore(name.trim(), stats.finalScore);
       if (result.success && result.id) {
         // Save to device storage
         deviceStorage.saveDeviceScore({
-          playerName: name,
+          playerName: name.trim(),
           scoreId: result.id,
           highScore: stats.finalScore,
           submittedAt: Date.now()

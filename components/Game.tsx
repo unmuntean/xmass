@@ -88,6 +88,8 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
   const bestStreakRef = useRef(0);
   const levelRef = useRef(1);
   const voucherSpawnedRef = useRef(false);
+  const lastHeartSpawnTimeRef = useRef(0);
+  const lastClockSpawnTimeRef = useRef(0);
 
   const collectedRef = useRef<{[key in Category]: number}>({
     [Category.NAILS]: 0,
@@ -357,16 +359,31 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
       if (fallingCount < 5 + Math.floor(currentLevel / 2)) {
         let productToSpawn = campaignData.products[Math.floor(Math.random() * campaignData.products.length)];
         
-        // Power-up spawning logic
-        // Heart spawns at levels 3, 6, 9, 12, etc.
+        // Power-up spawning logic with smart conditions
+        // Heart spawns at levels 3, 6, 9, 12, etc. BUT:
+        // - Only if lives < 3 (don't spawn if already at max)
+        // - Minimum 10 seconds since last heart spawn
+        const timeSinceLastHeart = time - lastHeartSpawnTimeRef.current;
+        const shouldSpawnHeart = 
+          currentLevel % 3 === 0 && 
+          livesRef.current < 3 && 
+          timeSinceLastHeart > 10000 && 
+          Math.random() < 0.15;
+        
         // Clock spawns at levels 2, 4, 6, 8, 10, 12, etc.
-        const shouldSpawnHeart = currentLevel % 3 === 0 && Math.random() < 0.15;
-        const shouldSpawnClock = currentLevel % 2 === 0 && Math.random() < 0.12;
+        // Minimum 8 seconds since last clock spawn
+        const timeSinceLastClock = time - lastClockSpawnTimeRef.current;
+        const shouldSpawnClock = 
+          currentLevel % 2 === 0 && 
+          timeSinceLastClock > 8000 && 
+          Math.random() < 0.12;
         
         if (shouldSpawnHeart) {
           productToSpawn = POWERUP_HEART;
+          lastHeartSpawnTimeRef.current = time;
         } else if (shouldSpawnClock) {
           productToSpawn = POWERUP_CLOCK;
+          lastClockSpawnTimeRef.current = time;
         } else if (!voucherSpawnedRef.current && scoreRef.current > 150) {
             productToSpawn = VOUCHER_PRODUCT;
             voucherSpawnedRef.current = true;

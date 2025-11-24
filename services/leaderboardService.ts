@@ -30,31 +30,64 @@ export const leaderboardService = {
     return data || [];
   },
 
-  // Submit a new score
+  // Submit a new score with validation
   async submitScore(playerName: string, score: number): Promise<{ success: boolean; id?: string }> {
+    // Validate inputs
+    if (!playerName || playerName.trim().length < 2 || playerName.trim().length > 50) {
+      return { success: false };
+    }
+    
+    if (!score || !Number.isFinite(score) || score < 0 || score > 999999) {
+      return { success: false };
+    }
+    
+    const sanitizedName = playerName.trim().substring(0, 50);
+    const sanitizedScore = Math.floor(Math.max(0, Math.min(999999, score)));
+    
     const { data, error } = await supabase
       .from('leaderboard')
-      .insert([{ player_name: playerName, score }])
+      .insert([{ player_name: sanitizedName, score: sanitizedScore }])
       .select('id')
       .single();
 
     if (error) {
-      console.error('Error submitting score:', error);
       return { success: false };
     }
 
     return { success: true, id: data?.id };
   },
 
-  // Update an existing score
+  // Update an existing score with validation
   async updateScore(scoreId: string, newScore: number): Promise<boolean> {
+    // Validate inputs
+    if (!scoreId || typeof scoreId !== 'string') {
+      return false;
+    }
+    
+    if (!newScore || !Number.isFinite(newScore) || newScore < 0 || newScore > 999999) {
+      return false;
+    }
+    
+    const sanitizedScore = Math.floor(Math.max(0, Math.min(999999, newScore)));
+    
+    // First, verify this score ID exists and get the current score
+    const { data: currentData } = await supabase
+      .from('leaderboard')
+      .select('score')
+      .eq('id', scoreId)
+      .single();
+    
+    // Only allow updates if new score is higher (prevent downgrade attacks)
+    if (!currentData || sanitizedScore <= currentData.score) {
+      return false;
+    }
+    
     const { error } = await supabase
       .from('leaderboard')
-      .update({ score: newScore, created_at: new Date().toISOString() })
+      .update({ score: sanitizedScore, created_at: new Date().toISOString() })
       .eq('id', scoreId);
 
     if (error) {
-      console.error('Error updating score:', error);
       return false;
     }
 
