@@ -165,3 +165,26 @@ export const FALLBACK_DATA = {
   ],
   groundingUrls: ["https://www.cupio.ro"]
 };
+
+// POWER-UP DEFINITIONS
+export const POWERUP_HEART: Product = {
+  id: 'powerup-heart',
+  name: '❤️ Extra Life',
+  category: Category.ACCESSORIES,
+  description: 'Power-up: +1 Life',
+  formFactor: ProductForm.TOOL,
+  colorHex: '#FF0066',
+  imageUrl: '',
+  specialType: 'HEART'
+};
+
+export const POWERUP_CLOCK: Product = {
+  id: 'powerup-clock',
+  name: '⏰ Slow Time',
+  category: Category.ACCESSORIES,
+  description: 'Power-up: Slow down for 2 seconds',
+  formFactor: ProductForm.TOOL,
+  colorHex: '#4169E1',
+  imageUrl: '',
+  specialType: 'CLOCK'
+};

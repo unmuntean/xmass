@@ -21,7 +21,7 @@ export interface Product {
   formFactor: ProductForm;
   colorHex: string; 
   imageUrl: string; // URL for the product image
-  specialType?: 'VOUCHER'; // New field for special items
+  specialType?: 'VOUCHER' | 'HEART' | 'CLOCK'; // New field for special items and power-ups
 }
 
 export interface CampaignData {

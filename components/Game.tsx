@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CampaignData, Product, Category, GameStats, CollectedItem } from '../types';
-import { CATEGORY_CONFIG, VOUCHER_PRODUCT } from '../constants';
+import { CATEGORY_CONFIG, VOUCHER_PRODUCT, POWERUP_HEART, POWERUP_CLOCK } from '../constants';
 import { ProductCard } from './ProductCard';
 import coinsSound from '../media/coins.wav';
 import missSound from '../media/miss.wav';
@@ -70,6 +70,10 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
   
   // VOUCHER GLOW STATE
   const [voucherGlow, setVoucherGlow] = useState<Category | null>(null);
+  
+  // POWER-UP STATE
+  const [slowdownActive, setSlowdownActive] = useState(false);
+  const slowdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // -- ENGINE REFS --
   const itemsRef = useRef<ActiveItem[]>([]);
@@ -195,53 +199,88 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
     if (!targetItem || targetItem.state !== 'falling') return;
 
     const isVoucher = targetItem.product.specialType === 'VOUCHER';
-    const isCorrect = isVoucher || targetItem.product.category === category;
+    const isHeart = targetItem.product.specialType === 'HEART';
+    const isClock = targetItem.product.specialType === 'CLOCK';
+    const isPowerup = isHeart || isClock;
+    const isCorrect = isVoucher || isPowerup || targetItem.product.category === category;
     
     if (isCorrect) {
-        if (isVoucher) {
+        // Handle Heart Power-up
+        if (isHeart) {
+            playSound('voucher');
+            livesRef.current = Math.min(livesRef.current + 1, 3); // Cap at 3 lives
+            setLives(livesRef.current);
+            spawnFloating(targetItem.x, targetItem.y, "+1 VIAȚĂ!", "text", "text-pink-300 font-black text-4xl drop-shadow-[0_0_20px_rgba(255,0,102,0.8)]");
+            triggerConfetti(targetItem.x, targetItem.y, true);
+        }
+        // Handle Clock Power-up
+        else if (isClock) {
+            playSound('voucher');
+            setSlowdownActive(true);
+            spawnFloating(targetItem.x, targetItem.y, "SLOW TIME!", "text", "text-blue-300 font-black text-3xl drop-shadow-[0_0_20px_rgba(79,70,229,0.8)]");
+            triggerConfetti(targetItem.x, targetItem.y, true);
+            
+            // Clear any existing timeout
+            if (slowdownTimeoutRef.current) {
+                clearTimeout(slowdownTimeoutRef.current);
+            }
+            
+            // Set 2-second slowdown
+            slowdownTimeoutRef.current = setTimeout(() => {
+                setSlowdownActive(false);
+                slowdownTimeoutRef.current = null;
+            }, 2000);
+        }
+        // Handle Voucher
+        else if (isVoucher) {
             playSound('voucher');
             spawnFloating(targetItem.x, targetItem.y, "CUPON!", "text", "text-yellow-300 font-black text-4xl drop-shadow-[0_0_20px_gold]");
             setVoucherGlow(category);
             setTimeout(() => setVoucherGlow(null), 1000);
-        } else {
+        } 
+        // Handle Regular Products
+        else {
             playSound('pop');
         }
         
-        streakRef.current += 1;
-        if (streakRef.current > bestStreakRef.current) bestStreakRef.current = streakRef.current;
-        setStreak(streakRef.current);
-        
-        collectedRef.current[category] += 1;
-        const currentMap = collectedItemsMapRef.current;
-        const existing = currentMap.get(targetItem.product.id);
-        if (existing) {
-            existing.count += 1;
-        } else {
-            currentMap.set(targetItem.product.id, { product: targetItem.product, count: 1 });
-        }
+        // Power-ups don't count toward streak, score, or collection
+        if (!isPowerup) {
+            streakRef.current += 1;
+            if (streakRef.current > bestStreakRef.current) bestStreakRef.current = streakRef.current;
+            setStreak(streakRef.current);
+            
+            collectedRef.current[category] += 1;
+            const currentMap = collectedItemsMapRef.current;
+            const existing = currentMap.get(targetItem.product.id);
+            if (existing) {
+                existing.count += 1;
+            } else {
+                currentMap.set(targetItem.product.id, { product: targetItem.product, count: 1 });
+            }
 
-        if (streakRef.current % 10 === 0) {
-            levelRef.current += 1;
-            setLevel(levelRef.current);
-            playSound('level');
-            spawnFloating(50, 40, `NIVEL UP!`, "text", "text-yellow-200 text-4xl font-serif font-black drop-shadow-lg");
-            triggerScreenShake();
-        }
+            if (streakRef.current % 10 === 0) {
+                levelRef.current += 1;
+                setLevel(levelRef.current);
+                playSound('level');
+                spawnFloating(50, 40, `NIVEL UP!`, "text", "text-yellow-200 text-4xl font-serif font-black drop-shadow-lg");
+                triggerScreenShake();
+            }
 
-        const multiplier = 1 + (streakRef.current * 0.1) + (levelRef.current * 0.2);
-        const basePoints = isVoucher ? 500 : 100;
-        const points = Math.round(basePoints * multiplier);
-        scoreRef.current += points;
-        setScore(scoreRef.current);
+            const multiplier = 1 + (streakRef.current * 0.1) + (levelRef.current * 0.2);
+            const basePoints = isVoucher ? 500 : 100;
+            const points = Math.round(basePoints * multiplier);
+            scoreRef.current += points;
+            setScore(scoreRef.current);
 
-        setBagFills(fills => ({ ...fills, [category]: Math.min(fills[category] + 5, 100) }));
-        setBagBump(category);
-        setTimeout(() => setBagBump(null), 150);
-        
-        if (!isVoucher) {
-            spawnFloating(targetItem.x, targetItem.y, `+${points}`, "text", "text-yellow-100 font-bold text-2xl stroke-black");
+            setBagFills(fills => ({ ...fills, [category]: Math.min(fills[category] + 5, 100) }));
+            setBagBump(category);
+            setTimeout(() => setBagBump(null), 150);
+            
+            if (!isVoucher) {
+                spawnFloating(targetItem.x, targetItem.y, `+${points}`, "text", "text-yellow-100 font-bold text-2xl stroke-black");
+            }
+            triggerConfetti(targetItem.x, targetItem.y, isVoucher);
         }
-        triggerConfetti(targetItem.x, targetItem.y, isVoucher);
 
         const cartRect = cartRefs.current[category]?.getBoundingClientRect();
         const gameRect = document.getElementById('game-area')?.getBoundingClientRect();
@@ -314,11 +353,20 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
       if (fallingCount < 5 + Math.floor(currentLevel / 2)) {
         let productToSpawn = campaignData.products[Math.floor(Math.random() * campaignData.products.length)];
         
-        if (!voucherSpawnedRef.current && scoreRef.current > 150) {
+        // Power-up spawning logic
+        // Heart spawns at levels 3, 6, 9, 12, etc.
+        // Clock spawns at levels 2, 4, 6, 8, 10, 12, etc.
+        const shouldSpawnHeart = currentLevel % 3 === 0 && Math.random() < 0.15;
+        const shouldSpawnClock = currentLevel % 2 === 0 && Math.random() < 0.12;
+        
+        if (shouldSpawnHeart) {
+          productToSpawn = POWERUP_HEART;
+        } else if (shouldSpawnClock) {
+          productToSpawn = POWERUP_CLOCK;
+        } else if (!voucherSpawnedRef.current && scoreRef.current > 150) {
             productToSpawn = VOUCHER_PRODUCT;
             voucherSpawnedRef.current = true;
-        } 
-        else if (voucherSpawnedRef.current && Math.random() < 0.01) {
+        } else if (voucherSpawnedRef.current && Math.random() < 0.01) {
              productToSpawn = VOUCHER_PRODUCT;
         }
 
@@ -375,8 +423,9 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
             return;
         }
 
-        const speedMultiplier = 1 + (streakRef.current > 5 ? 0.1 : 0); 
-        const moveSpeed = currentSpeed * speedMultiplier * (deltaTime / 16);
+        const speedMultiplier = 1 + (streakRef.current > 5 ? 0.1 : 0);
+        const slowdownMultiplier = slowdownActive ? 0.4 : 1; // 60% slower when power-up is active
+        const moveSpeed = currentSpeed * speedMultiplier * slowdownMultiplier * (deltaTime / 16);
         const nextYBase = item.yBase + moveSpeed;
         const swayAmount = 6 * Math.sin((nextYBase / 22) + item.phaseOffset); 
         const nextX = item.xBase + swayAmount;
@@ -517,6 +566,16 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
              >
                 {isMuted ? '🔇' : '🔊'}
              </button>
+
+             {/* Slowdown Active Indicator */}
+             {slowdownActive && (
+                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1.5 rounded-l-2xl backdrop-blur-md border-r-4 border-blue-300 shadow-[0_0_20px_rgba(79,70,229,0.6)] animate-pulse pointer-events-none">
+                     <div className="flex items-center gap-1.5">
+                         <span className="text-xl">⏰</span>
+                         <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white">SLOW</span>
+                     </div>
+                 </div>
+             )}
         </div>
       </div>
 
