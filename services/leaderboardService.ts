@@ -31,13 +31,30 @@ export const leaderboardService = {
   },
 
   // Submit a new score
-  async submitScore(playerName: string, score: number): Promise<boolean> {
-    const { error } = await supabase
+  async submitScore(playerName: string, score: number): Promise<{ success: boolean; id?: string }> {
+    const { data, error } = await supabase
       .from('leaderboard')
-      .insert([{ player_name: playerName, score }]);
+      .insert([{ player_name: playerName, score }])
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Error submitting score:', error);
+      return { success: false };
+    }
+
+    return { success: true, id: data?.id };
+  },
+
+  // Update an existing score
+  async updateScore(scoreId: string, newScore: number): Promise<boolean> {
+    const { error } = await supabase
+      .from('leaderboard')
+      .update({ score: newScore, created_at: new Date().toISOString() })
+      .eq('id', scoreId);
+
+    if (error) {
+      console.error('Error updating score:', error);
       return false;
     }
 

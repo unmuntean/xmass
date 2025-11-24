@@ -1,15 +1,26 @@
 import React, { useEffect, useRef } from 'react';
 import soundtrack from '../media/soundtrack.mp3';
 
+interface BackgroundMusicProps {
+  muted?: boolean;
+}
+
 /**
  * Plays a looping background soundtrack from the local `media/soundtrack.mp3`.
  * 
  * - Uses an <audio> element for better React lifecycle management.
  * - Audio is started on the **first user interaction** to comply with browser autoplay policies.
  */
-export const BackgroundMusic: React.FC = () => {
+export const BackgroundMusic: React.FC<BackgroundMusicProps> = ({ muted = false }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const unlockedRef = useRef(false);
+
+  // Handle mute state
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = muted;
+    }
+  }, [muted]);
 
   useEffect(() => {
     const unlock = () => {

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { CampaignData, GameState, GameStats } from './types';
 import { fetchCupioCampaign } from './services/geminiService';
+import { imagePreloader } from './services/imagePreloader';
 import { Game } from './components/Game';
 import { LoadingScreen } from './components/LoadingScreen';
 import { TutorialScreen } from './components/TutorialScreen';
@@ -13,12 +14,17 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.INIT);
   const [campaignData, setCampaignData] = useState<CampaignData | null>(null);
   const [gameStats, setGameStats] = useState<GameStats | null>(null);
+  const [globalMuted, setGlobalMuted] = useState<boolean>(false);
 
   useEffect(() => {
     const initGame = async () => {
       setGameState(GameState.LOADING);
       const data = await fetchCupioCampaign();
       setCampaignData(data);
+      
+      // Preload all product images during loading screen
+      await imagePreloader.preloadProducts(data.products);
+      
       setGameState(GameState.MENU);
     };
     initGame();
@@ -41,7 +47,7 @@ const App: React.FC = () => {
       
       {/* GLOBAL BACKGROUND MUSIC (local MP3 in /media) */}
       {/* This component persists across all states to keep music looping seamlessly */}
-      <BackgroundMusic />
+      <BackgroundMusic muted={globalMuted} />
 
       {/* GLOBAL SNOWFALL - Subtle flakes across ALL screens, including gameplay */}
       <Snowfall />
@@ -122,6 +128,8 @@ const App: React.FC = () => {
             campaignData={campaignData} 
             onGameOver={handleGameOver}
             onExit={handleMenuReturn}
+            globalMuted={globalMuted}
+            setGlobalMuted={setGlobalMuted}
           />
         )}
 

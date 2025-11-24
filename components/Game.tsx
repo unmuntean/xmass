@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CampaignData, Product, Category, GameStats, CollectedItem } from '../types';
 import { CATEGORY_CONFIG, VOUCHER_PRODUCT, POWERUP_HEART, POWERUP_CLOCK } from '../constants';
 import { ProductCard } from './ProductCard';
+import { imagePreloader } from '../services/imagePreloader';
 import coinsSound from '../media/coins.wav';
 import missSound from '../media/miss.wav';
 import voucherSound from '../media/voucher.mp3';
@@ -12,6 +13,8 @@ interface GameProps {
   campaignData: CampaignData;
   onGameOver: (stats: GameStats) => void;
   onExit: () => void;
+  globalMuted: boolean;
+  setGlobalMuted: (muted: boolean) => void;
 }
 
 // Game Balance Constants
@@ -46,7 +49,7 @@ interface FloatingElement {
   velocity?: { x: number, y: number };
 }
 
-export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) => {
+export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, globalMuted, setGlobalMuted }) => {
   // -- RENDER STATE --
   const [activeItems, setActiveItems] = useState<ActiveItem[]>([]);
   const [visualTargetId, setVisualTargetId] = useState<number | null>(null);
@@ -59,7 +62,8 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
   const [floatingElements, setFloatingElements] = useState<FloatingElement[]>([]);
   const [damageFlash, setDamageFlash] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // Use global mute state from App
+  const isMuted = globalMuted;
   
   const [bagFills, setBagFills] = useState<{[key in Category]: number}>({
     [Category.NAILS]: 0,
@@ -105,7 +109,7 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
 
   useEffect(() => {
     sfxPopRef.current = new Audio(coinsSound); // Coins sound for success
-    sfxPopRef.current.volume = 0.6;
+    sfxPopRef.current.volume = 1.0; // Double volume (was 0.6, now max)
 
     // Short, Dull "Wood Block" - distinct for error, non-musical
     sfxErrorRef.current = new Audio(missSound); // Miss sound for error
@@ -467,16 +471,22 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
         triggerScreenShake();
     }
 
-    setFloatingElements(prev => prev.map(el => {
-        if (el.velocity) {
-            return {
-                ...el,
-                x: el.x + (el.velocity.x * 0.15),
-                y: el.y + (el.velocity.y * 0.15)
-            };
-        }
-        return el;
-    }));
+    // Throttle floating elements update - only every 3rd frame on mobile
+    const isMobile = window.innerWidth < 768;
+    const shouldUpdateFloating = !isMobile || (time % 3 === 0);
+    
+    if (shouldUpdateFloating && floatingElements.length > 0) {
+      setFloatingElements(prev => prev.map(el => {
+          if (el.velocity) {
+              return {
+                  ...el,
+                  x: el.x + (el.velocity.x * 0.15),
+                  y: el.y + (el.velocity.y * 0.15)
+              };
+          }
+          return el;
+      }));
+    }
 
     setActiveItems([...itemsRef.current]);
     setVisualTargetId(lockedTargetIdRef.current); 
@@ -485,6 +495,11 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
       requestRef.current = requestAnimationFrame(updateGame);
     }
   };
+
+  // Preload all images on mount for smooth gameplay
+  useEffect(() => {
+    imagePreloader.preloadProducts(campaignData.products);
+  }, [campaignData.products]);
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(updateGame);
@@ -510,15 +525,17 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
       
       <div className={`absolute inset-0 bg-red-600 pointer-events-none z-50 transition-opacity duration-100 ${damageFlash ? 'opacity-40' : 'opacity-0'}`}></div>
 
-      {/* PREMIUM WINTER BACKGROUND */}
+      {/* PREMIUM WINTER BACKGROUND - Optimized for mobile */}
       <div className="absolute inset-0 z-0 overflow-hidden bg-[#3c0e14]">
-         <div className="absolute w-[120vw] h-[120vw] rounded-full bg-red-900/40 blur-3xl md:blur-[120px] top-[-50%] left-[-20%] animate-pulse" style={{animationDuration: '6s'}}></div>
-         <div className="absolute w-[100vw] h-[100vw] rounded-full bg-yellow-900/20 blur-3xl md:blur-[100px] bottom-[-40%] right-[-20%] animate-pulse" style={{animationDuration: '8s'}}></div>
+         {/* Disable blur on mobile, keep on desktop */}
+         <div className="absolute w-[120vw] h-[120vw] rounded-full bg-red-900/40 md:blur-[120px] top-[-50%] left-[-20%] animate-pulse" style={{animationDuration: '6s', willChange: 'opacity'}}></div>
+         <div className="absolute w-[100vw] h-[100vw] rounded-full bg-yellow-900/20 md:blur-[100px] bottom-[-40%] right-[-20%] animate-pulse" style={{animationDuration: '8s', willChange: 'opacity'}}></div>
          <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-[#1a0505] to-transparent pointer-events-none"></div>
       </div>
       
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none z-0 select-none overflow-hidden">
-         <span className="text-[40vh] font-serif font-black tracking-tighter text-white blur-sm italic">{level}</span>
+      {/* Level number - Smaller and no blur on mobile */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] md:opacity-[0.04] pointer-events-none z-0 select-none overflow-hidden">
+         <span className="text-[30vh] md:text-[40vh] font-serif font-black tracking-tighter text-white md:blur-sm italic">{level}</span>
       </div>
 
       <div className="absolute inset-0 z-30 flex w-full h-full touch-manipulation" style={{ touchAction: 'none' }}>
@@ -527,10 +544,10 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
          <div className="flex-1 h-full active:bg-white/5 transition-colors duration-75" onPointerDown={(e) => { e.preventDefault(); handleSort(Category.ACCESSORIES); }}></div>
       </div>
 
-      {/* HUD - No local gradient needed, using global one from App.tsx */}
+      {/* HUD - Optimized backdrop-blur for mobile */}
       <div className="absolute top-0 left-0 w-full p-2 md:p-4 flex justify-between items-start z-40 pointer-events-none">
         <div className="flex flex-col gap-1 md:gap-2 origin-top-left transform scale-75 md:scale-100">
-             <div className="bg-black/60 backdrop-blur-md px-4 py-2 md:px-5 md:py-3 rounded-r-2xl border-l-4 border-yellow-500 flex flex-col shadow-lg border-y border-r border-white/10">
+             <div className="bg-black/70 md:bg-black/60 md:backdrop-blur-md px-4 py-2 md:px-5 md:py-3 rounded-r-2xl border-l-4 border-yellow-500 flex flex-col shadow-lg border-y border-r border-white/10">
                 <span className="text-[8px] md:text-[10px] text-yellow-500 uppercase tracking-widest font-bold">SCOR</span>
                 <span className="text-2xl md:text-3xl font-black font-mono leading-none text-white tracking-tighter drop-shadow-md">
                     {score.toLocaleString()}
@@ -545,7 +562,7 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
 
         <div className="flex flex-col items-end gap-2 pointer-events-auto origin-top-right transform scale-75 md:scale-100">
             {/* Lives */}
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-l-2xl flex gap-1 shadow-lg pointer-events-none border-r-4 border-red-500 border-y border-l border-white/10">
+            <div className="bg-black/70 md:bg-black/60 md:backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-l-2xl flex gap-1 shadow-lg pointer-events-none border-r-4 border-red-500 border-y border-l border-white/10">
                 {[...Array(3)].map((_, i) => (
                     <span key={i} className={`text-xl md:text-2xl transition-all duration-300 ${i < lives ? 'scale-100 opacity-100 drop-shadow-md' : 'scale-75 opacity-20 grayscale'}`}>
                         ❤️
@@ -554,14 +571,14 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
             </div>
 
             {/* Level */}
-            <div className="bg-white/10 px-3 py-0.5 md:px-4 md:py-1 rounded-full backdrop-blur-md border border-white/10 flex items-center gap-2 pointer-events-none">
+            <div className="bg-white/15 md:bg-white/10 md:backdrop-blur-md px-3 py-0.5 md:px-4 md:py-1 rounded-full border border-white/10 flex items-center gap-2 pointer-events-none">
                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-yellow-400 animate-pulse"></div>
                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-200">Nivel {level}</span>
             </div>
 
              {/* Sound Toggle - Moved to bottom */}
              <button 
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={() => setGlobalMuted(!isMuted)}
                 className="p-2 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 transition-colors border border-white/10 mt-1"
              >
                 {isMuted ? '🔇' : '🔊'}

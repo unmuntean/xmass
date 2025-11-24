@@ -6,8 +6,12 @@ import React, { useMemo } from 'react';
  * Refined for a magical, high-end feel with natural falling patterns.
  */
 export const Snowfall: React.FC = () => {
+  // Reduce flakes on mobile for better performance
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const flakeCount = isMobile ? 30 : 60;
+  
   const flakes = useMemo(() => {
-    return [...Array(60)].map((_, i) => {
+    return [...Array(flakeCount)].map((_, i) => {
       const depth = Math.random(); // 0 = far, 1 = close
       const size = 1 + (depth * 2.5); // Smaller: 1px to 3.5px
       
@@ -25,7 +29,7 @@ export const Snowfall: React.FC = () => {
         drift: (Math.random() - 0.5) * 80
       };
     });
-  }, []);
+  }, [flakeCount]);
 
   const keyframes = `
     @keyframes elegantSnow {

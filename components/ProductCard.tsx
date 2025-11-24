@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo } from 'react';
 import { Product } from '../types';
 
 interface ProductCardProps {
@@ -10,7 +10,7 @@ interface ProductCardProps {
   isTarget?: boolean; 
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, xPosition, yPosition, rotation, feedback, isTarget }) => {
+const ProductCardComponent: React.FC<ProductCardProps> = ({ product, xPosition, yPosition, rotation, feedback, isTarget }) => {
   const [imageError, setImageError] = useState(false);
   const scale = useMemo(() => 0.98 + Math.random() * 0.04, []); 
   const isVoucher = product.specialType === 'VOUCHER';
@@ -74,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, xPosition, yP
             : isClock
             ? 'bg-gradient-to-br from-blue-300 via-indigo-400 to-purple-500'
             : 'bg-white'}
-          shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3),0_0_0_1px_rgba(0,0,0,0.1)]
+          shadow-md md:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3),0_0_0_1px_rgba(0,0,0,0.1)]
         `}>
           {/* Subtle shine for special items */}
           {(isVoucher || isPowerup) && (
@@ -132,7 +132,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, xPosition, yP
                   referrerPolicy="no-referrer"
                   {...(needsCrossOrigin ? { crossOrigin: "anonymous" } : {})}
                   decoding="async"
-                  loading="lazy"
+                  loading="eager"
               />
             </div>
           ) : (
@@ -156,8 +156,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, xPosition, yP
 
       {/* LABEL */}
       {!feedback && (
-        <div className={`relative z-20 mt-3 px-3 py-2 rounded-xl backdrop-blur-md max-w-[180px] w-auto
-          transition-all duration-200 shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+        <div className={`relative z-20 mt-3 px-3 py-2 rounded-xl md:backdrop-blur-md max-w-[180px] w-auto
+          transition-all duration-200 shadow-md md:shadow-[0_4px_12px_rgba(0,0,0,0.3)]
             ${isVoucher 
               ? 'bg-gradient-to-br from-yellow-900/95 via-yellow-800/95 to-amber-900/95 border-2 border-yellow-400/60'
               : isHeart
@@ -177,6 +177,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, xPosition, yP
     </div>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export const ProductCard = memo(ProductCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.xPosition === nextProps.xPosition &&
+    prevProps.yPosition === nextProps.yPosition &&
+    prevProps.rotation === nextProps.rotation &&
+    prevProps.feedback === nextProps.feedback &&
+    prevProps.isTarget === nextProps.isTarget
+  );
+});
 
 // Add keyframes for power-up animations
 const style = document.createElement('style');

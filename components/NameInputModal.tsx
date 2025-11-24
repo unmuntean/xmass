@@ -4,10 +4,12 @@ interface NameInputModalProps {
   score: number;
   onSubmit: (name: string) => void;
   onCancel: () => void;
+  isUpdate?: boolean;
+  existingName?: string;
 }
 
-export const NameInputModal: React.FC<NameInputModalProps> = ({ score, onSubmit, onCancel }) => {
-  const [name, setName] = useState('');
+export const NameInputModal: React.FC<NameInputModalProps> = ({ score, onSubmit, onCancel, isUpdate = false, existingName = '' }) => {
+  const [name, setName] = useState(existingName);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -31,15 +33,15 @@ export const NameInputModal: React.FC<NameInputModalProps> = ({ score, onSubmit,
           <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-red-700"></div>
 
           <div className="text-center mb-6">
-            <span className="text-4xl block mb-2">🎉</span>
+            <span className="text-4xl block mb-2">{isUpdate ? '🎊' : '🎉'}</span>
             <h2 className="text-2xl font-serif font-black text-black mb-2">
-              Scor Record!
+              {isUpdate ? 'Scor Îmbunătățit!' : 'Scor Record!'}
             </h2>
             <div className="text-3xl font-black font-mono text-red-700 mb-2">
               {score.toLocaleString()}
             </div>
             <p className="text-sm text-gray-600 font-serif italic">
-              Introdu numele pentru clasament
+              {isUpdate ? 'Actualizează scorul tău' : 'Introdu numele pentru clasament'}
             </p>
           </div>
 
@@ -68,7 +70,7 @@ export const NameInputModal: React.FC<NameInputModalProps> = ({ score, onSubmit,
               disabled={isSubmitting || name.trim().length < 2}
               className="flex-1 py-3 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white font-serif font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'SE SALVEAZĂ...' : 'SALVEAZĂ'}
+              {isSubmitting ? 'SE SALVEAZĂ...' : (isUpdate ? 'ACTUALIZEAZĂ' : 'SALVEAZĂ')}
             </button>
           </div>
         </div>

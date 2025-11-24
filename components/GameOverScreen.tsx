@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { GameStats, CollectedItem } from '../types';
 import { CATEGORY_CONFIG } from '../constants';
 import { leaderboardService, LeaderboardEntry } from '../services/leaderboardService';
+import { deviceStorage } from '../services/deviceStorage';
 import { NameInputModal } from './NameInputModal';
 import { LeaderboardModal } from './LeaderboardModal';
 
@@ -26,6 +27,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   const [isHighScore, setIsHighScore] = useState(false);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false); // Track if updating existing score
+  const [existingPlayerName, setExistingPlayerName] = useState<string>('');
   
   // Sort items: Vouchers first, then by count descending
   const sortedItems = [...stats.collectedItems].sort((a, b) => {
@@ -43,9 +46,27 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
       const top3 = await leaderboardService.getTopPlayers(3);
       setTopPlayers(top3);
       
-      // Check if this is a high score
-      const qualifies = await leaderboardService.isHighScore(stats.finalScore);
-      setIsHighScore(qualifies);
+      // Check device storage for existing score
+      const deviceScore = deviceStorage.getDeviceScore();
+      
+      if (deviceScore) {
+        // User has already submitted from this device
+        if (stats.finalScore > deviceScore.highScore) {
+          // New high score for this device - offer update
+          setIsUpdateMode(true);
+          setExistingPlayerName(deviceScore.playerName);
+          setIsHighScore(true);
+        } else {
+          // Lower score - don't show name input
+          setIsHighScore(false);
+        }
+      } else {
+        // No previous score from this device - check global leaderboard
+        const qualifies = await leaderboardService.isHighScore(stats.finalScore);
+        setIsHighScore(qualifies);
+        setIsUpdateMode(false);
+      }
+      
       setLeaderboardLoading(false);
     };
     
@@ -91,12 +112,42 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   };
 
   const handleSubmitScore = async (name: string) => {
-    const success = await leaderboardService.submitScore(name, stats.finalScore);
-    if (success) {
-      // Refresh leaderboard
-      const top3 = await leaderboardService.getTopPlayers(3);
-      setTopPlayers(top3);
-      setHasSubmittedScore(true); // Mark as submitted
+    const deviceScore = deviceStorage.getDeviceScore();
+    
+    if (isUpdateMode && deviceScore) {
+      // Update existing score
+      const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore);
+      if (success) {
+        // Update device storage
+        deviceStorage.saveDeviceScore({
+          playerName: name,
+          scoreId: deviceScore.scoreId,
+          highScore: stats.finalScore,
+          submittedAt: Date.now()
+        });
+        
+        // Refresh leaderboard
+        const top3 = await leaderboardService.getTopPlayers(3);
+        setTopPlayers(top3);
+        setHasSubmittedScore(true);
+      }
+    } else {
+      // Submit new score
+      const result = await leaderboardService.submitScore(name, stats.finalScore);
+      if (result.success && result.id) {
+        // Save to device storage
+        deviceStorage.saveDeviceScore({
+          playerName: name,
+          scoreId: result.id,
+          highScore: stats.finalScore,
+          submittedAt: Date.now()
+        });
+        
+        // Refresh leaderboard
+        const top3 = await leaderboardService.getTopPlayers(3);
+        setTopPlayers(top3);
+        setHasSubmittedScore(true);
+      }
     }
     setShowNameInput(false);
   };
@@ -412,6 +463,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
           score={stats.finalScore}
           onSubmit={handleSubmitScore}
           onCancel={handleCancelNameInput}
+          isUpdate={isUpdateMode}
+          existingName={existingPlayerName}
         />
       )}
 
