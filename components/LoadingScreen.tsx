@@ -3,7 +3,7 @@ import React from 'react';
 
 export const LoadingScreen: React.FC = () => {
   return (
-    <div className="fixed inset-0 bg-[#2a0a12] flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 bg-[#3c0e14] flex flex-col items-center justify-center z-50">
       {/* Snowfall Layer inside loading */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 animate-pulse"></div>
 

@@ -54,7 +54,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   };
 
   return (
-    <div className="h-full w-full flex flex-col items-center relative overflow-hidden bg-[#2a0a12]">
+    <div className="h-full w-full flex flex-col items-center relative overflow-hidden bg-[#3c0e14]">
       
       {/* Winter Gradient Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#4a0e1c_0%,_#1a0505_100%)] pointer-events-none"></div>

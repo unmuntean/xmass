@@ -54,88 +54,113 @@ export const FALLBACK_DATA = {
     // --- NAILS (UNGHII) ---
     { 
       id: 'n1', 
-      name: 'Rubber base French Collection - Blush 15ml', 
+      name: 'Cupio ART Collection - Interstellar ', 
       category: Category.NAILS, 
-      description: 'Rubber Base', 
+      description: 'Oja semipermanenta ', 
       formFactor: ProductForm.BOTTLE, 
       colorHex: '#Ebb0a0', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/b/l/blush_931229132_1.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/o/j/oja-semipermanenta-cupio-art-collection-leather-dress-15ml_20256.jpg' 
     },
     { 
       id: 'n4', 
-      name: 'Rubber Base Cupio Timeless Collection - Ruby Love 15ml', 
+      name: 'Perfect Ruby Necklace', 
       category: Category.NAILS, 
-      description: 'Rubber Base', 
+      description: 'Oja semipermanenta ', 
       formFactor: ProductForm.BOTTLE, 
       colorHex: '#800020', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/r/u/ruby_love_c8891.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/p/e/perfect_ruby_necklace_c9984_c.jpg' 
     },
-    
+    { 
+      id: 'n5', 
+      name: 'Endless Red', 
+      category: Category.NAILS, 
+      description: 'Rubber Base Cupio', 
+      formFactor: ProductForm.BOTTLE, 
+      colorHex: '#800020', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/e/n/endless_red_c8890.jpg' 
+    },
+    { 
+      id: 'n6', 
+      name: 'Ruby Collection - Flirty', 
+      category: Category.NAILS, 
+      description: 'Rubber Base Cupio', 
+      formFactor: ProductForm.BOTTLE, 
+      colorHex: '#800020', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/o/j/oja-semipermanenta-ruby-collection-flirty_16776.jpg' 
+    },
     // --- MAKEUP (MACHIAJ) ---
     { 
       id: 'm1', 
-      name: 'Balsam de buze glossy Cupio My Peptide', 
+      name: 'Cupio Cinematic - Natural', 
       category: Category.MAKEUP, 
-      description: 'Lip Balm', 
+      description: 'Fond de ten waterproof ', 
       formFactor: ProductForm.TUBE, 
       colorHex: '#ff99cc', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/j/p/jpg_9_27.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/i/cinematic_natural_c7568_d.jpg' 
     },
     { 
       id: 'm2', 
-      name: 'Luciu de buze Cupio Wet Lips', 
+      name: 'Cupio My Peptide - Strawberry', 
       category: Category.MAKEUP, 
-      description: 'Lip Gloss', 
+      description: 'Balsam de buze glossy', 
       formFactor: ProductForm.TUBE, 
       colorHex: '#e3c2a8', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/j/p/jpg_4_2.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/b/a/balsam-de-buze-glossy-cupio-my-peptide-chocolate_20187_2.jpg' 
     },
     { 
       id: 'm3', 
-      name: 'Eyeliner cu doua capete Ribells Double Dare', 
+      name: 'Fard mono Cupio', 
       category: Category.MAKEUP, 
       description: 'Eyeliner', 
       formFactor: ProductForm.TUBE, 
       colorHex: '#000000', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/9/c9800_c.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/9/c9554.jpg' 
     },
-
+    { 
+      id: 'm4', 
+      name: 'Ruj mat Cupio Cinematic', 
+      category: Category.MAKEUP, 
+      description: 'Eyeliner', 
+      formFactor: ProductForm.TUBE, 
+      colorHex: '#000000', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/i/cinematic_matte_lipstick_nude_scene_c9194_1.jpg' 
+    },
     // --- ACCESSORIES (ACCESORII) ---
     { 
       id: 'a1', 
-      name: 'Burete pentru machiaj Cupio Cinematic - Big Screen', 
+      name: 'Cutie cadou Cupio - ART', 
       category: Category.ACCESSORIES, 
-      description: 'Makeup Tool', 
+      description: 'Gift Set', 
       formFactor: ProductForm.TOOL, 
       colorHex: '#ffcfcf', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/x/l/xl_c9569_1.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/u/cutie_c9384.jpg' 
     },
     { 
       id: 'a2', 
       name: 'Magnet Cupio The Season of You', 
       category: Category.ACCESSORIES, 
-      description: 'Nail Tool', 
+      description: 'Magnet Cupio', 
       formFactor: ProductForm.TOOL, 
       colorHex: '#333333', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/j/p/jpg_9_42.jpg' 
+      imageUrl: 'https://dima-ai.com/magnetcp.png' 
     },
     { 
       id: 'a3', 
-      name: 'Cutie accesorii machiaj si unghii pentru copii Martinelia', 
+      name: 'Breloc pentru geanta si chei ', 
       category: Category.ACCESSORIES, 
       description: 'Gift Set', 
       formFactor: ProductForm.JAR, 
       colorHex: '#FF69B4', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/7/c7354_2.jpg' 
+      imageUrl: 'https://dima-ai.com/breloccp.png' 
     },
     { 
       id: 'a4', 
-      name: 'Lampa led unghii Cupio Half Moon', 
+      name: 'Set 8 pensule ', 
       category: Category.ACCESSORIES, 
-      description: 'Device', 
+      description: 'Gift Set', 
       formFactor: ProductForm.TOOL, 
       colorHex: '#ffffff', 
-      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/l/a/lampa_cupio_sun_b.jpg' 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/9/c9764_e.jpg' 
     }
   ],
   groundingUrls: ["https://www.cupio.ro"]

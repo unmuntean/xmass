@@ -7,7 +7,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { TutorialScreen } from './components/TutorialScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { Snowfall } from './components/Snowfall';
-import { YouTubeBackground } from './components/YouTubeBackground';
+import { BackgroundMusic } from './components/BackgroundMusic';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.INIT);
@@ -37,14 +37,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-[100dvh] bg-[#2a0a12] text-white overflow-hidden font-sans selection:bg-red-500 selection:text-white">
+    <div className="relative w-full h-[100dvh] bg-[#3c0e14] text-white overflow-hidden font-sans selection:bg-red-500 selection:text-white">
       
-      {/* GLOBAL BACKGROUND MUSIC (YouTube) */}
+      {/* GLOBAL BACKGROUND MUSIC (local MP3 in /media) */}
       {/* This component persists across all states to keep music looping seamlessly */}
-      <YouTubeBackground />
+      <BackgroundMusic />
 
-      {/* GLOBAL SNOWFALL - Visible on all screens EXCEPT Gameplay */}
-      {gameState !== GameState.PLAYING && <Snowfall />}
+      {/* GLOBAL SNOWFALL - Subtle flakes across ALL screens, including gameplay */}
+      <Snowfall />
 
       {/* AMBIENT BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -52,6 +52,10 @@ const App: React.FC = () => {
         <div className="absolute bottom-[-20%] right-[-20%] w-[60vw] h-[60vw] bg-yellow-900/10 rounded-full blur-[100px] animate-pulse duration-[5000ms]"></div>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
       </div>
+
+      {/* GLOBAL TOP & BOTTOM GRADIENTS - Subtle visual framing, behind UI */}
+      <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none z-[5]"></div>
+      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none z-[5]"></div>
 
       {/* CONTENT LAYER */}
       <div className="relative z-10 w-full h-full">
@@ -71,7 +75,6 @@ const App: React.FC = () => {
                  <h1 className="text-6xl md:text-7xl font-black italic tracking-tighter leading-none font-serif">
                    <span className="block text-white drop-shadow-2xl">OF YOU</span>
                  </h1>
-                 <div className="absolute -right-4 -top-8 text-white text-4xl animate-bounce">❄️</div>
               </div>
               
               {/* CAMPAIGN CARD */}

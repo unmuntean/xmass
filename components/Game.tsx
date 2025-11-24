@@ -3,6 +3,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CampaignData, Product, Category, GameStats, CollectedItem } from '../types';
 import { CATEGORY_CONFIG, VOUCHER_PRODUCT } from '../constants';
 import { ProductCard } from './ProductCard';
+import coinsSound from '../media/coins.wav';
+import missSound from '../media/miss.wav';
+import voucherSound from '../media/voucher.mp3';
+
 
 interface GameProps {
   campaignData: CampaignData;
@@ -96,18 +100,18 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
   const sfxVoucherRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    sfxPopRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/12/12/audio_73130386e8.mp3?filename=sleigh-bells-1-14930.mp3"); // Sleigh bells
-    sfxPopRef.current.volume = 0.5;
+    sfxPopRef.current = new Audio(coinsSound); // Coins sound for success
+    sfxPopRef.current.volume = 0.6;
 
     // Short, Dull "Wood Block" - distinct for error, non-musical
-    sfxErrorRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/03/24/audio_0df7b51e04.mp3?filename=wood-block-1-88691.mp3");
-    sfxErrorRef.current.volume = 0.6;
+    sfxErrorRef.current = new Audio(missSound); // Miss sound for error
+    sfxErrorRef.current.volume = 0.7;
     
     sfxLevelUpRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/11/22/audio_40478147d3.mp3?filename=magic-wand-6009.mp3"); // Magic chimes
     sfxLevelUpRef.current.volume = 0.6;
     
-    sfxVoucherRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_10672e8163.mp3?filename=cash-register-purchase-87313.mp3");
-    sfxVoucherRef.current.volume = 0.7;
+    sfxVoucherRef.current = new Audio(voucherSound);
+    sfxVoucherRef.current.volume = 0.8;
   }, []);
 
   useEffect(() => {
@@ -131,7 +135,8 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
 
   const spawnFloating = (x: number, y: number, content: string | React.ReactNode, type: 'text' | 'particle' | 'emoji' = 'text', color?: string) => {
     const isMobile = window.innerWidth < 768;
-    if (isMobile && floatingElements.length > 5) return;
+    // Reduce particle count on mobile for performance
+    if (isMobile && floatingElements.length > 2) return;
 
     const id = Date.now() + Math.random();
     const velocity = type === 'particle' 
@@ -317,15 +322,16 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
              productToSpawn = VOUCHER_PRODUCT;
         }
 
-        const startX = 20 + Math.random() * 60; 
+        // Spawn across wider horizontal range with better distribution
+        const startX = 15 + Math.random() * 70; 
 
         const newItem: ActiveItem = {
           id: time + Math.random(),
           product: productToSpawn,
           x: startX,
-          y: -18, 
+          y: -15, // Start higher to be fully off-screen
           xBase: startX,
-          yBase: -18,
+          yBase: -15,
           phaseOffset: Math.random() * Math.PI * 2,
           rotation: 0, 
           rotationSpeed: 0, 
@@ -456,7 +462,7 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
       <div className={`absolute inset-0 bg-red-600 pointer-events-none z-50 transition-opacity duration-100 ${damageFlash ? 'opacity-40' : 'opacity-0'}`}></div>
 
       {/* PREMIUM WINTER BACKGROUND */}
-      <div className="absolute inset-0 z-0 overflow-hidden bg-[#2a0a12]">
+      <div className="absolute inset-0 z-0 overflow-hidden bg-[#3c0e14]">
          <div className="absolute w-[120vw] h-[120vw] rounded-full bg-red-900/40 blur-3xl md:blur-[120px] top-[-50%] left-[-20%] animate-pulse" style={{animationDuration: '6s'}}></div>
          <div className="absolute w-[100vw] h-[100vw] rounded-full bg-yellow-900/20 blur-3xl md:blur-[100px] bottom-[-40%] right-[-20%] animate-pulse" style={{animationDuration: '8s'}}></div>
          <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-[#1a0505] to-transparent pointer-events-none"></div>
@@ -472,41 +478,45 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit }) 
          <div className="flex-1 h-full active:bg-white/5 transition-colors duration-75" onPointerDown={(e) => { e.preventDefault(); handleSort(Category.ACCESSORIES); }}></div>
       </div>
 
-      {/* HUD */}
-      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-40 pointer-events-none">
-        <div className="flex flex-col gap-2">
-             <div className="bg-black/60 backdrop-blur-md px-5 py-3 rounded-r-2xl border-l-4 border-yellow-500 flex flex-col shadow-lg border-y border-r border-white/10">
-                <span className="text-[10px] text-yellow-500 uppercase tracking-widest font-bold">SCOR</span>
-                <span className="text-3xl font-black font-mono leading-none text-white tracking-tighter drop-shadow-md">
+      {/* HUD - No local gradient needed, using global one from App.tsx */}
+      <div className="absolute top-0 left-0 w-full p-2 md:p-4 flex justify-between items-start z-40 pointer-events-none">
+        <div className="flex flex-col gap-1 md:gap-2 origin-top-left transform scale-75 md:scale-100">
+             <div className="bg-black/60 backdrop-blur-md px-4 py-2 md:px-5 md:py-3 rounded-r-2xl border-l-4 border-yellow-500 flex flex-col shadow-lg border-y border-r border-white/10">
+                <span className="text-[8px] md:text-[10px] text-yellow-500 uppercase tracking-widest font-bold">SCOR</span>
+                <span className="text-2xl md:text-3xl font-black font-mono leading-none text-white tracking-tighter drop-shadow-md">
                     {score.toLocaleString()}
                 </span>
              </div>
              <div className={`transition-all duration-300 origin-left ${streak > 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                 <div className="text-yellow-300 font-serif italic text-2xl drop-shadow-md ml-2 animate-pulse">
+                 <div className="text-yellow-300 font-serif italic text-xl md:text-2xl drop-shadow-md ml-2 animate-pulse">
                      {streak}x COMBO
                  </div>
              </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2 pointer-events-auto">
-             <button 
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-2 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 transition-colors border border-white/10"
-             >
-                {isMuted ? '🔇' : '🔊'}
-             </button>
-
-            <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-l-2xl flex gap-1 shadow-lg pointer-events-none border-r-4 border-red-500 border-y border-l border-white/10">
+        <div className="flex flex-col items-end gap-2 pointer-events-auto origin-top-right transform scale-75 md:scale-100">
+            {/* Lives */}
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-l-2xl flex gap-1 shadow-lg pointer-events-none border-r-4 border-red-500 border-y border-l border-white/10">
                 {[...Array(3)].map((_, i) => (
-                    <span key={i} className={`text-2xl transition-all duration-300 ${i < lives ? 'scale-100 opacity-100 drop-shadow-md' : 'scale-75 opacity-20 grayscale'}`}>
+                    <span key={i} className={`text-xl md:text-2xl transition-all duration-300 ${i < lives ? 'scale-100 opacity-100 drop-shadow-md' : 'scale-75 opacity-20 grayscale'}`}>
                         ❤️
                     </span>
                 ))}
             </div>
-            <div className="bg-white/10 px-4 py-1 rounded-full backdrop-blur-md border border-white/10 flex items-center gap-2 pointer-events-none">
-                 <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
-                 <span className="text-xs font-bold uppercase tracking-widest text-gray-200">Nivel {level}</span>
+
+            {/* Level */}
+            <div className="bg-white/10 px-3 py-0.5 md:px-4 md:py-1 rounded-full backdrop-blur-md border border-white/10 flex items-center gap-2 pointer-events-none">
+                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-200">Nivel {level}</span>
             </div>
+
+             {/* Sound Toggle - Moved to bottom */}
+             <button 
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-2 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 transition-colors border border-white/10 mt-1"
+             >
+                {isMuted ? '🔇' : '🔊'}
+             </button>
         </div>
       </div>
 
