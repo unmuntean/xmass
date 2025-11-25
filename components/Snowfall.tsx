@@ -1,35 +1,59 @@
 import React, { useMemo } from 'react';
 
+type SnowMood = 'calm' | 'blizzard';
+
+interface SnowfallProps {
+  mood: SnowMood;
+}
+
 /**
- * Elegant, subtle snow overlay.
- * 
- * Refined for a magical, high-end feel with natural falling patterns.
+ * Global snow overlay.
+ *
+ * - "calm": subtle, slow flakes (used during gameplay or neutral states)
+ * - "blizzard": denser, faster flakes for dramatic moments (menu, tutorial, game over)
  */
-export const Snowfall: React.FC = () => {
-  // Reduce flakes on mobile for better performance
+export const Snowfall: React.FC<SnowfallProps> = ({ mood }) => {
+  // Reduce base flakes on mobile for better performance
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const flakeCount = isMobile ? 30 : 60;
+  const baseCount = isMobile ? 25 : 60;
+
+  const flakeCount =
+    mood === 'blizzard'
+      ? Math.min(isMobile ? 80 : 160, Math.round(baseCount * (isMobile ? 2.4 : 2.8))) // strong boost but capped
+      : baseCount;
   
   const flakes = useMemo(() => {
     return [...Array(flakeCount)].map((_, i) => {
       const depth = Math.random(); // 0 = far, 1 = close
-      const size = 1 + (depth * 2.5); // Smaller: 1px to 3.5px
+      const size = 1 + depth * 2.5; // 1px to 3.5px
+
+      // Calm vs blizzard tuning
+      // Keep fall speed similar, but make horizontal movement much wilder in blizzard
+      const durationBase = mood === 'blizzard' ? 20 : 22;
+      const durationRange = mood === 'blizzard' ? 18 : 24;
+      const opacityBase = mood === 'blizzard' ? 0.22 : 0.12;
+      const opacityExtra = mood === 'blizzard' ? 0.28 : 0.22;
+      const driftMultiplier = mood === 'blizzard' ? 4 : 1;
       
+      const gust = (Math.random() - 0.5) * 60 * (mood === 'blizzard' ? 4 : 0.8); // extra push from gusts
+
       return {
         id: i,
         left: Math.random() * 100,
-        // Much slower, more varied
-        animationDuration: 20 + Math.random() * 25 + (1 - depth) * 15, 
+        // Slightly faster and more varied for blizzard
+        animationDuration: durationBase + Math.random() * durationRange + (1 - depth) * 12,
         animationDelay: -Math.random() * 50,
-        // Very subtle opacity
-        opacity: 0.15 + (depth * 0.25), // Range: 0.15 to 0.4
+        // Subtle opacity, a bit stronger in blizzard
+        opacity: opacityBase + depth * opacityExtra,
         size: size,
         blur: 0.3 + (1 - depth) * 1.2,
-        // Gentle horizontal drift
-        drift: (Math.random() - 0.5) * 80
+        // Base horizontal drift – stronger in blizzard
+        drift: (Math.random() - 0.5) * 80 * driftMultiplier,
+        // Gust component for more chaotic blizzard
+        gust,
       };
     });
-  }, [flakeCount]);
+  }, [flakeCount, mood]);
 
   const keyframes = `
     @keyframes elegantSnow {
@@ -37,15 +61,33 @@ export const Snowfall: React.FC = () => {
         transform: translate3d(0, -20vh, 0) scale(0);
         opacity: 0;
       }
-      10% {
+      15% {
         opacity: var(--target-opacity);
         transform: translate3d(0, 0, 0) scale(1);
       }
-      90% {
+      50% {
+        /* Mid‑air, strong cross‑wind pushes flakes sideways */
+        transform: translate3d(
+          calc(var(--drift) * 0.7 + var(--gust) * 1.2),
+          55vh,
+          0
+        ) scale(1);
+        opacity: var(--target-opacity);
+      }
+      80% {
+        transform: translate3d(
+          calc(var(--drift) * 1.1 + var(--gust) * 1.8),
+          105vh,
+          0
+        ) scale(0.9);
         opacity: var(--target-opacity);
       }
       100% {
-        transform: translate3d(var(--drift), 120vh, 0) scale(0.8);
+        transform: translate3d(
+          calc(var(--drift) * 1.4 + var(--gust) * 2.4),
+          125vh,
+          0
+        ) scale(0.8);
         opacity: 0;
       }
     }
@@ -68,9 +110,10 @@ export const Snowfall: React.FC = () => {
               height: `${flake.size}px`,
               opacity: 0,
               filter: `blur(${flake.blur}px)`,
-              
+
               '--target-opacity': flake.opacity,
               '--drift': `${flake.drift}px`,
+              '--gust': `${flake.gust}px`,
               
               animation: `elegantSnow ${flake.animationDuration}s ease-in-out infinite`,
               animationDelay: `${flake.animationDelay}s`,

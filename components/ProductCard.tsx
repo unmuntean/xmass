@@ -11,6 +11,8 @@ interface ProductCardProps {
 }
 
 const ProductCardComponent: React.FC<ProductCardProps> = ({ product, xPosition, yPosition, rotation, feedback, isTarget }) => {
+  // Safety guard: if for any reason product is missing, don't render to avoid runtime crashes
+  if (!product) return null;
   const [imageError, setImageError] = useState(false);
   const scale = useMemo(() => 0.98 + Math.random() * 0.04, []); 
   const isVoucher = product.specialType === 'VOUCHER';

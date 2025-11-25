@@ -88,6 +88,34 @@ export const FALLBACK_DATA = {
       colorHex: '#800020', 
       imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/o/j/oja-semipermanenta-ruby-collection-flirty_16776.jpg' 
     },
+    { 
+      id: 'n7', 
+      name: ' Leather Dress', 
+      category: Category.NAILS, 
+      description: 'Oja semipermanenta Cupio ART', 
+      formFactor: ProductForm.BOTTLE, 
+      colorHex: '#800020', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/o/j/oja-semipermanenta-cupio-art-collection-future-romance-15ml_20222_1.jpg' 
+    },
+    { 
+      id: 'n8', 
+      name: ' Modern Frosted Pine ', 
+      category: Category.NAILS, 
+      description: 'Oja semipermanenta Cupio ART', 
+      formFactor: ProductForm.BOTTLE, 
+      colorHex: '#800020', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/m/o/modern_frosted_pine_c9981_c.jpg' 
+    },
+    ,
+    { 
+      id: 'n9', 
+      name: 'Best Time Of The Year', 
+      category: Category.NAILS, 
+      description: 'Oja semipermanenta Cupio ART', 
+      formFactor: ProductForm.BOTTLE, 
+      colorHex: '#800020', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/b/e/best_time_of_the_year_c9985_c.jpg' 
+    },
     // --- MAKEUP (MACHIAJ) ---
     { 
       id: 'm1', 
@@ -124,6 +152,33 @@ export const FALLBACK_DATA = {
       formFactor: ProductForm.TUBE, 
       colorHex: '#000000', 
       imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/i/cinematic_matte_lipstick_nude_scene_c9194_1.jpg' 
+    },
+    { 
+      id: 'm5', 
+      name: 'Cupio Temptation - Pink', 
+      category: Category.MAKEUP, 
+      description: 'Bronzer pudra fata', 
+      formFactor: ProductForm.TUBE, 
+      colorHex: '#000000', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/t/e/temptation_pink_c6529.jpg' 
+    },
+    { 
+      id: 'm6', 
+      name: 'wonderEYES - Hollywood Glow', 
+      category: Category.MAKEUP, 
+      description: 'Fard de pleoape gliterat', 
+      formFactor: ProductForm.TUBE, 
+      colorHex: '#000000', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/w/o/wondereyes_hollywood_glow.jpg' 
+    },
+    { 
+      id: 'm7', 
+      name: 'MUAH Hype - Pastel Blue', 
+      category: Category.MAKEUP, 
+      description: 'Fard colorat pe baza de apa', 
+      formFactor: ProductForm.TUBE, 
+      colorHex: '#000000', 
+      imageUrl: 'https://cdn.cupio.ro/media/catalog/product/cache/a68930dbf4bc7bd59b3c7cc34c1d83d6/c/8/c8909.jpg' 
     },
     // --- ACCESSORIES (ACCESORII) ---
     { 

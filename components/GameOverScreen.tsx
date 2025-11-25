@@ -1,9 +1,8 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GameStats, CollectedItem } from '../types';
 import { CATEGORY_CONFIG } from '../constants';
 import { leaderboardService, LeaderboardEntry } from '../services/leaderboardService';
-import { deviceStorage } from '../services/deviceStorage';
 import { NameInputModal } from './NameInputModal';
 import { LeaderboardModal } from './LeaderboardModal';
 
@@ -25,10 +24,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   const [showNameInput, setShowNameInput] = useState(false);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [isHighScore, setIsHighScore] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Track initial load
-  const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
-  const [isUpdateMode, setIsUpdateMode] = useState(false); // Track if updating existing score
-  const [existingPlayerName, setExistingPlayerName] = useState<string>('');
   const [detailsClickable, setDetailsClickable] = useState(false); // Delay item clicks on Game Over
   
   // Sort items: Vouchers first, then by count descending
@@ -40,36 +35,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     return b.count - a.count;
   });
 
-  // Load leaderboard on mount - check FRESH device storage each time
+  // Load leaderboard on mount
   useEffect(() => {
     const loadLeaderboard = async () => {
-      // Fetch top 3 from server
       const top3 = await leaderboardService.getTopPlayers(3);
       setTopPlayers(top3);
-      
-      // IMPORTANT: Always get FRESH device storage data
-      const deviceScore = deviceStorage.getDeviceScore();
-      
-      if (deviceScore && deviceScore.highScore && typeof deviceScore.highScore === 'number') {
-        // User has already submitted from this device
-        if (stats.finalScore > deviceScore.highScore) {
-          // New high score for this device - offer update
-          setIsUpdateMode(true);
-          setExistingPlayerName(deviceScore.playerName || '');
-          setIsHighScore(true);
-        } else {
-          // Lower or equal score - don't show name input
-          setIsHighScore(false);
-          setIsUpdateMode(false);
-        }
-      } else {
-        // No previous score from this device - check global leaderboard
-        const qualifies = await leaderboardService.isHighScore(stats.finalScore);
-        setIsHighScore(qualifies);
-        setIsUpdateMode(false);
-      }
-      
-      setInitialLoadComplete(true);
+      const qualifies = await leaderboardService.isHighScore(stats.finalScore);
+      setIsHighScore(qualifies);
     };
     
     loadLeaderboard();
@@ -106,13 +78,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     };
   }, [stats.finalScore]); // Only re-run if the score itself changes
   
-  // Separate effect to show name input after animation completes
+  // After animation completes, if it's a highscore, show name input once
   useEffect(() => {
-    if (showDetails && isHighScore && initialLoadComplete && !hasSubmittedScore) {
+    if (showDetails && isHighScore) {
       const timeout = setTimeout(() => setShowNameInput(true), 300);
       return () => clearTimeout(timeout);
     }
-  }, [showDetails, isHighScore, initialLoadComplete, hasSubmittedScore]);
+  }, [showDetails, isHighScore]);
 
   const handleCopyCode = (code: string) => {
       navigator.clipboard.writeText(code);
@@ -121,8 +93,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   };
 
   const handleSubmitScore = async (name: string) => {
-    const deviceScore = deviceStorage.getDeviceScore();
-    
     // Validate score before submitting (basic client-side check)
     if (!stats.finalScore || stats.finalScore < 0 || !Number.isFinite(stats.finalScore)) {
       setShowNameInput(false);
@@ -131,60 +101,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     
     const trimmedName = name.trim();
     
-    if (isUpdateMode && deviceScore && deviceScore.scoreId) {
-      // Update existing score (and allow name change)
-      const success = await leaderboardService.updateScore(deviceScore.scoreId, stats.finalScore, trimmedName);
-      
-      if (success) {
-        // Update device storage with NEW high score
-        deviceStorage.saveDeviceScore({
-          playerName: trimmedName,
-          scoreId: deviceScore.scoreId,
-          highScore: stats.finalScore,
-          submittedAt: Date.now()
-        });
-        
-        // Refresh BOTH top 3 podium AND full leaderboard
-        const top3 = await leaderboardService.getTopPlayers(3);
-        setTopPlayers(top3);
-        
-        // Also refresh full leaderboard if it's open
-        if (showFullLeaderboard) {
-          const allPlayers = await leaderboardService.getTopPlayers(50);
-          setFullLeaderboard(allPlayers);
-        }
-        
-        setHasSubmittedScore(true);
-      } else {
-        console.error('Update failed!');
+    // Always insert a new score row for a qualifying highscore
+    const result = await leaderboardService.submitScore(trimmedName, stats.finalScore);
+    if (result.success) {
+      const top3 = await leaderboardService.getTopPlayers(3);
+      setTopPlayers(top3);
+      if (showFullLeaderboard) {
+        const allPlayers = await leaderboardService.getTopPlayers(50);
+        setFullLeaderboard(allPlayers);
       }
-    } else {
-      // Submit new score
-      const result = await leaderboardService.submitScore(trimmedName, stats.finalScore);
-      
-      if (result.success && result.id) {
-        // Save to device storage
-        deviceStorage.saveDeviceScore({
-          playerName: trimmedName,
-          scoreId: result.id,
-          highScore: stats.finalScore,
-          submittedAt: Date.now()
-        });
-        
-        // Refresh BOTH top 3 podium AND full leaderboard
-        const top3 = await leaderboardService.getTopPlayers(3);
-        setTopPlayers(top3);
-        
-        // Also refresh full leaderboard if it's open
-        if (showFullLeaderboard) {
-          const allPlayers = await leaderboardService.getTopPlayers(50);
-          setFullLeaderboard(allPlayers);
-        }
-        
-        setHasSubmittedScore(true);
-      } else {
-        console.error('Submit failed!');
-      }
+      // After a successful save, don't prompt again for this screen
+      setIsHighScore(false);
     }
     setShowNameInput(false);
   };
@@ -198,7 +125,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
   
   const handleCancelNameInput = () => {
     setShowNameInput(false);
-    setHasSubmittedScore(true); // Mark as "handled" even if cancelled
+    // Don't keep re-opening modal on this screen
+    setIsHighScore(false);
   };
 
   return (
@@ -218,12 +146,37 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
         <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent mt-3 mb-3"></div>
         
         {/* Social Share Buttons */}
-        <div className="flex gap-3 mt-1">
+        <div className="flex gap-3 mt-1" data-share-ignore="true">
           <button
-            onClick={() => {
+            onClick={async () => {
               const shareText = `Am obținut ${displayScore.toLocaleString()} puncte în The Season of You! 🎄✨`;
               const shareUrl = window.location.href;
-              window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`, '_blank', 'width=600,height=400');
+
+              // Prefer native OS share on mobile if available (can include screenshot file)
+              const blob = await captureGameScreenshot();
+              const nav: any = navigator;
+              if (blob && nav?.share && nav?.canShare) {
+                try {
+                  const file = new File([blob], 'xmass-score.png', { type: 'image/png' });
+                  if (nav.canShare({ files: [file] })) {
+                    await nav.share({
+                      files: [file],
+                      text: shareText,
+                      title: 'The Season of You – scorul meu',
+                    });
+                    return;
+                  }
+                } catch {
+                  // fall through to Facebook dialog
+                }
+              }
+
+              // Fallback: open Facebook share dialog with page URL
+              window.open(
+                `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`,
+                '_blank',
+                'width=600,height=400'
+              );
             }}
             className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] hover:bg-[#1664D8] text-white text-xs font-bold rounded-lg shadow-lg transition-all active:scale-95"
           >
@@ -234,12 +187,35 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
           </button>
           
           <button
-            onClick={() => {
+            onClick={async () => {
               const shareText = `Am obținut ${displayScore.toLocaleString()} puncte în The Season of You! 🎄✨ @cupio.ro`;
-              const shareUrl = window.location.href;
-              window.open(`https://www.instagram.com/`, '_blank');
-              // Note: Instagram doesn't have direct sharing API, opens Instagram
-              navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+              const blob = await captureGameScreenshot();
+              const nav: any = navigator;
+
+              // Best effort: use Web Share API with image on mobile (lets user pick Instagram, Facebook, etc.)
+              if (blob && nav?.share && nav?.canShare) {
+                try {
+                  const file = new File([blob], 'xmass-score.png', { type: 'image/png' });
+                  if (nav.canShare({ files: [file] })) {
+                    await nav.share({
+                      files: [file],
+                      text: shareText,
+                      title: 'The Season of You – scorul meu',
+                    });
+                    return;
+                  }
+                } catch {
+                  // fall through to simple open + clipboard
+                }
+              }
+
+              // Fallback: open Instagram app / site and put text on clipboard for manual paste
+              try {
+                await navigator.clipboard.writeText(shareText);
+              } catch {
+                // ignore, not critical
+              }
+              window.open('https://www.instagram.com/', '_blank');
             }}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#FD1D1D] hover:opacity-90 text-white text-xs font-bold rounded-lg shadow-lg transition-all active:scale-95"
           >
@@ -499,8 +475,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
           score={stats.finalScore}
           onSubmit={handleSubmitScore}
           onCancel={handleCancelNameInput}
-          isUpdate={isUpdateMode}
-          existingName={existingPlayerName}
         />
       )}
 
@@ -514,3 +488,30 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, onRestart
     </div>
   );
 };
+
+// Helper: capture the main game area as a PNG blob (best-effort), excluding share buttons / modals
+async function captureGameScreenshot(): Promise<Blob | null> {
+  const gameEl = document.getElementById('game-area');
+  if (!gameEl) return null;
+
+  try {
+    const html2canvas = (await import('html2canvas')).default;
+
+    const canvas = await html2canvas(gameEl, {
+      backgroundColor: '#3c0e14',
+      useCORS: true,
+      ignoreElements: (el) => {
+        if (!(el instanceof HTMLElement)) return false;
+        if (el.dataset.shareIgnore === 'true') return true;
+        if (el.getAttribute('role') === 'dialog') return true;
+        return false;
+      },
+    });
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  } catch {
+    return null;
+  }
+}

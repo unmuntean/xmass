@@ -7,6 +7,7 @@ import { imagePreloader } from '../services/imagePreloader';
 import coinsSound from '../media/coins.wav';
 import missSound from '../media/miss.wav';
 import voucherSound from '../media/voucher.mp3';
+import levelUpSound from '../media/hoho.wav';
 
 
 interface GameProps {
@@ -117,8 +118,8 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
     sfxErrorRef.current = new Audio(missSound); // Miss sound for error
     sfxErrorRef.current.volume = 0.7;
     
-    sfxLevelUpRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/11/22/audio_40478147d3.mp3?filename=magic-wand-6009.mp3"); // Magic chimes
-    sfxLevelUpRef.current.volume = 0.6;
+    sfxLevelUpRef.current = new Audio(levelUpSound);
+    sfxLevelUpRef.current.volume = 0.9;
     
     sfxVoucherRef.current = new Audio(voucherSound);
     sfxVoucherRef.current.volume = 0.8;
@@ -179,30 +180,23 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
     setTimeout(() => setScreenShake(false), 300);
   };
 
+  // Helper: pick the falling item closest to the bottom (by y)
   const pickNextTarget = (items: ActiveItem[]): number | null => {
-      const candidates = items.filter(i => i.state === 'falling');
-      if (candidates.length === 0) return null;
-      candidates.sort((a, b) => b.y - a.y);
-      return candidates[0].id;
+    const falling = items.filter(i => i.state === 'falling' && i.product);
+    if (falling.length === 0) return null;
+    const best = falling.reduce((best, item) => (item.y > best.y ? item : best), falling[0]);
+    return best.id;
   };
 
   const handleSort = useCallback((category: Category) => {
     if (livesRef.current <= 0) return;
 
     const currentItems = itemsRef.current;
-    let targetId = lockedTargetIdRef.current;
-    let targetItem = targetId ? currentItems.find(i => i.id === targetId) : null;
-
-    if (!targetItem || targetItem.state !== 'falling') {
-        const bestId = pickNextTarget(currentItems);
-        if (bestId) {
-            targetId = bestId;
-            targetItem = currentItems.find(i => i.id === bestId)!;
-            lockedTargetIdRef.current = bestId;
-        }
-    }
-    
-    if (!targetItem || targetItem.state !== 'falling') return;
+    // Always pick the closest falling item to the bottom as target
+    const bestId = pickNextTarget(currentItems);
+    if (!bestId) return;
+    const targetItem = currentItems.find(i => i.id === bestId)!;
+    lockedTargetIdRef.current = bestId;
 
     const isVoucher = targetItem.product.specialType === 'VOUCHER';
     const isHeart = targetItem.product.specialType === 'HEART';
@@ -315,9 +309,10 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
         triggerScreenShake();
         spawnFloating(targetItem.x, targetItem.y, "UPS!", "text", "text-red-500 font-black text-3xl");
 
-        itemsRef.current = currentItems.map(i => i.id === targetItem!.id ? { ...i, state: 'missed' } : i);
+        itemsRef.current = currentItems.map(i => i.id === targetItem.id ? { ...i, state: 'missed' } : i);
     }
 
+    // For visual highlight: pick next closest falling item, if any
     const nextTargetId = pickNextTarget(itemsRef.current);
     lockedTargetIdRef.current = nextTargetId;
     setVisualTargetId(nextTargetId);
@@ -615,17 +610,20 @@ export const Game: React.FC<GameProps> = ({ campaignData, onGameOver, onExit, gl
 
       {/* Play Area */}
       <div className="flex-grow relative z-20 perspective-1000 pointer-events-none">
-        {activeItems.map(item => (
+        {activeItems.map(item => {
+          if (!item.product) return null;
+          return (
             <ProductCard 
-                key={item.id} 
-                product={item.product} 
-                xPosition={item.x} 
-                yPosition={item.y}
-                rotation={item.rotation}
-                feedback={item.state === 'flying_to_cart' ? 'success' : item.state === 'missed' ? 'failure' : null}
-                isTarget={item.id === visualTargetId}
+              key={item.id} 
+              product={item.product} 
+              xPosition={item.x} 
+              yPosition={item.y}
+              rotation={item.rotation}
+              feedback={item.state === 'flying_to_cart' ? 'success' : item.state === 'missed' ? 'failure' : null}
+              isTarget={item.id === visualTargetId}
             />
-        ))}
+          );
+        })}
 
         {floatingElements.map(el => (
             <div 

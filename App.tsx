@@ -49,8 +49,14 @@ const App: React.FC = () => {
       {/* This component persists across all states to keep music looping seamlessly */}
       <BackgroundMusic muted={globalMuted} />
 
-      {/* GLOBAL SNOWFALL - Subtle flakes across ALL screens, including gameplay */}
-      <Snowfall />
+      {/* GLOBAL SNOWFALL */}
+      <Snowfall
+        mood={
+          gameState === GameState.PLAYING || gameState === GameState.LOADING
+            ? 'calm'
+            : 'blizzard'
+        }
+      />
 
       {/* AMBIENT BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none z-0">
